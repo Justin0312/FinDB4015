@@ -1,0 +1,230 @@
+---
+title: "hw0415-1"
+author: "Justin0415"
+date: "2019年4月15日"
+output: html_document
+---
+
+#第一題
+```{r}
+ifelse(!require(quantmod), install.packages('quantmod'),library(quantmod))
+tw20_adj_close<-read.csv("2018Q4_20.csv")
+```
+#第二題
+```{r}
+ifelse(!require(readr), install.packages('readr'), library(readr))
+tw20.txt<-read.table("tw20.txt", header = T)
+```
+#第三題
+```{r}
+ifelse(!require(reshape2), install.packages('reshape2'),library(reshape2))
+colnames(tw20.txt)<-c("id","", "date", "price" )
+tw20.xts<-dcast(tw20.txt, date~id)
+```
+
+```{r}
+library(reshape2)
+tw20.txt<-na.omit(tw20.txt)
+tw20.reorder = dcast(tw20.txt, date~id)
+dim(tw20.reorder)
+head(tw20.reorder)
+str(tw20.reorder)
+
+tw20.reorder$date<-as.Date(as.character(tw20.reorder$date), "%Y%m%d")
+head(tw20.reorder)
+str(tw20.reorder)
+
+
+
+library(xts)
+tw20.xts<-xts(tw20.reorder[,-1], order.by = tw20.reorder$date)
+head(tw20.xts)
+tail(tw20.xts)
+str(tw20.xts)
+```
+#第四題
+```{r}
+library(quantmod)
+library(xts)
+tw20.mon.ret<-to.monthly(tw20.xts, indexAt = "lastof", OHLC=FALSE)
+head(tw20.mon.ret)
+
+library(PerformanceAnalytics)
+library(magrittr)
+tw20.day.ret<-Return.calculate(tw20.xts, method = "log")
+head(tw20.day.ret)
+dim(tw20.day.ret)
+```
+#第六題
+```{r}
+con = gzcon(url('http://www.systematicportfolio.com/sit.gz', 'rb'))
+source(con)
+close(con)
+
+load.packages('quantmod')
+
+tw20.all<-readRDS("C:/FinDB4015/hw0415/tw20_xts_all")
+head(tw20.all)
+tw20.all.1<-tw20.all[complete.cases(tw20.all),]
+head(tw20.all.1)
+```
+
+```{r}
+#1101
+library(xts)
+data1<-new.env()
+data1$prices<-tw20.all.1$'1101'
+prices<-data1$prices
+
+bt.prep(data1, align='keep.all')
+names(data1)
+data1$dates
+data1$prices
+data1$prices<-prices
+
+class(data1$dates)
+data1$execution.price = prices
+data1$weight[] = 1
+buy.hold.1101 <- bt.run.share(data1, clean.signal=F, trade.summary = TRUE)
+buy.hold.1101 <-bt.run(data1)
+
+sma1101<-SMA(prices, 90)
+head(sma1101, 91)
+data1$weight[] <- iif(prices >= sma1101, 1, 0)
+sma90.1101 <- bt.run(data1, trade.summary=T) 
+
+data1$weight[] <- iif(prices >= sma1101, 1, -1)
+sma90.1101.short <- bt.run(data1, trade.summary=T)
+
+models<-list("SMA1101"= sma90.1101,
+            "SMA1101_short" = sma90.1101.short,
+            "BH 1101" = buy.hold.1101)
+strategy.performance.snapshoot(models, T)
+strategy.performance.snapshoot(models, control=list(comparison=T), sort.performance=T)
+plotbt.strategy.sidebyside(models, return.table=T)
+
+ifelse(!require(ggplot2), install.packages('ggplot2'), library(ggplot2))
+all.1101<-merge.xts(sma90.1101$equity,
+                    sma90.1101.short$equity,
+                    buy.hold.1101$equity)
+colnames(all.1101)<-c("sma1101", "sma1101 short", "BH")
+head(all.1101)
+all.1101.long<-fortify(all.1101, melt=T)
+head(all.1101.long)
+```
+```{r}
+title = "Cumulative returns of 1101s"
+p = ggplot(all.1101.long, aes(x = Index, y = Value)) +
+  geom_line(aes(linetype = Series, color = Series)) +
+  #geom_point(aes(shape = Series))+
+  xlab("year") + ylab("cumulative returns")+
+  ggtitle(title)
+p
+```
+
+```{r}
+#1216
+library(xts)
+data1<-new.env()
+data1$prices<-tw20.all.1$'1216'
+price<-data1$prices
+
+bt.prep(data1, align='keep.all')
+names(data1)
+data1$dates
+data1$prices
+data1$prices<-prices
+
+class(data1$dates)
+data1$execution.price = prices
+data1$weight[] = 1
+buy.hold.1216 <- bt.run.share(data1, clean.signal=F, trade.summary = TRUE)
+buy.hold.1216 <-bt.run(data1)
+
+sma1216<-SMA(prices, 90)
+head(sma1216, 91)
+data1$weight[] <- iif(prices >= sma1216, 1, 0)
+sma90.1216 <- bt.run(data1, trade.summary=T) 
+
+data1$weight[] <- iif(prices >= sma1216, 1, -1)
+sma90.1216.short <- bt.run(data1, trade.summary=T)
+
+models<-list("SMA1216"= sma90.1216,
+            "SMA1216_short" = sma90.1216.short, 
+            "BH 1216" = buy.hold.1216)
+strategy.performance.snapshoot(models, T)
+strategy.performance.snapshoot(models, control=list(comparison=T), sort.performance=T)
+plotbt.strategy.sidebyside(models, return.table=T)
+
+ifelse(!require(ggplot2), install.packages('ggplot2'),library(ggplot2))
+all.1216<-merge.xts(sma90.1216$equity,
+                    sma90.1216.short$equity,
+                    buy.hold.1216$equity)
+colnames(all.1216)<-c("sma1216", "sma1216 short", "BH")
+head(all.1216)
+all.1216.long<-fortify(all.1216, melt=T)
+head(all.1216.long)
+```
+```{r}
+title = "Cumulative returns of 1216s"
+p = ggplot(all.1216.long, aes(x = Index, y = Value)) +
+  geom_line(aes(linetype = Series, color = Series)) +
+  #geom_point(aes(shape = Series))+
+  xlab("year") + ylab("cumulative returns")+
+  ggtitle(title)
+p
+```
+
+```{r}
+#1301
+library(xts)
+data1<-new.env()
+data1$prices<-tw20.all.1$'1301'
+price<-data1$prices
+
+bt.prep(data1, align='keep.all')
+names(data1)
+data1$dates
+data1$prices
+data1$prices<-prices
+
+class(data1$dates)
+data1$execution.price = prices
+data1$weight[] = 1
+buy.hold.1301 <- bt.run.share(data1, clean.signal=F, trade.summary = TRUE)
+buy.hold.1301 <-bt.run(data1)
+
+sma1301<-SMA(prices, 90)
+head(sma1301, 91)
+data1$weight[] <- iif(prices >= sma1301, 1, 0)
+sma90.1301 <- bt.run(data1, trade.summary=T) 
+
+data1$weight[] <- iif(prices >= sma1301, 1, -1)
+sma90.1301.short <- bt.run(data1, trade.summary=T)
+
+models<-list("SMA1301"= sma90.1301,
+            "SMA1301_short" = sma90.1301.short, 
+            "BH 1301" = buy.hold.1301)
+strategy.performance.snapshoot(models, T)
+strategy.performance.snapshoot(models, control=list(comparison=T), sort.performance=T)
+plotbt.strategy.sidebyside(models, return.table=T)
+
+ifelse(!require(ggplot2), install.packages('ggplot2'),library(ggplot2))
+all.1301<-merge.xts(sma90.1301$equity,
+                    sma90.1301.short$equity,
+                    buy.hold.1301$equity)
+colnames(all.1301)<-c("sma1301", "sma1301 short", "BH")
+head(all.1301)
+all.1301.long<-fortify(all.1301, melt=T)
+head(all.1301.long)
+```
+
+```{r}
+title = "Cumulative returns of 1301s"
+p = ggplot(all.1301.long, aes(x = Index, y = Value)) +
+  geom_line(aes(linetype = Series, color = Series)) +
+  #geom_point(aes(shape = Series))+
+  xlab("year") + ylab("cumulative returns")+
+  ggtitle(title)
+p
+```
